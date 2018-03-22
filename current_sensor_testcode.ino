@@ -18,7 +18,7 @@ const int chipSelect = 53;
 //const int ledPin = 13;
 
 // This is the reference to the Clock we'll use to get the time
-RTC_DS1307 RTC;
+//RTC_DS1307 RTC;
 
 // Our two voltage monitors. A is the one with the A0 FILLED, B is the one with the A1 FILLED
 Adafruit_INA219 ina219_a(0x41); // We need to update this for the right address, A0 is 0x41
@@ -31,10 +31,10 @@ Adafruit_INA219 ina219_a(0x41); // We need to update this for the right address,
 #define FONA_RST 4
 
 #include <SoftwareSerial.h>
-SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
-SoftwareSerial *fonaSerial = &fonaSS;
+//SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
+//SoftwareSerial *fonaSerial = &fonaSS;
 //HardwareSerial *fonaSerial = &Serial;
-Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
+//Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
 
 uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
 
@@ -45,7 +45,7 @@ void setup () {
     ina219_a.begin();
     //ina219_b.begin();
     Wire.begin();
-    RTC.begin();
+    //RTC.begin();
     
     Serial.println ("1");
     Serial.println(SS);
@@ -129,7 +129,8 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
     // Copy the file to the buffer
     fileName.toCharArray(fileNameChars, sizeof(fileName)+1);
     // Create the line of text we're going to log
-    String logLine = String(now.year()) +'/'+ String(now.month()) +'/' + String(now.day()) + ' ' + String(now.hour()) + ':' + String(now.minute()) + ':' + String(now.second());
+    //String logLine = String(now.year()) +'/'+ String(now.month()) +'/' + String(now.day()) + ' ' + String(now.hour()) + ':' + String(now.minute()) + ':' + String(now.second());
+    String logLine = "";
     logLine += ',' + String(a_shuntVolts) + ',' + String(a_busVolts) + ',' + String(a_loadVolts) + ',' + String(a_amps);
     
     
@@ -152,18 +153,18 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
     
 
     
-    File dataFile = SD.open(fileNameChars, FILE_WRITE);
+    //File dataFile = SD.open(fileNameChars, FILE_WRITE);
     
     // If that worked, write it out
-    if (dataFile) {
+    /*if (dataFile) {
           Serial.println(F("A"));
       // Write the line to the file
       dataFile.println(logLine);
       // Close the file - the SD system only supports a single file being opened at once, since everything is highly serial in nature
       dataFile.close();
-    }
-          // TODO remove this before final ship
-          logLine.toCharArray(cMessage, 141);
+    }*/
+    // TODO remove this before final ship
+      logLine.toCharArray(cMessage, 141);
       //sendSMS(phoneNumber, cMessage);
     Serial.println ("5");
     // We don't have a good way to report errors writing to the card...
