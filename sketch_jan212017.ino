@@ -2,8 +2,6 @@
 
 #include <Adafruit_FONA.h>
 
-//#include <FonaSMS.h>
-
 #include <Adafruit_INA219.h>
 
 #include <Wire.h>
@@ -55,7 +53,7 @@ void setup () {
     pinMode(SS, OUTPUT);
     //pinMode(13, OUTPUT);
 
-fonaSerial->begin(4800);
+/* fonaSerial->begin(4800);
   while (! fona.begin(*fonaSerial)) {
     Serial.println(F("Couldn't find FONA"));
     while (1);
@@ -66,7 +64,7 @@ fonaSerial->begin(4800);
   uint8_t imeiLen = fona.getIMEI(imei);
   if (imeiLen > 0) {
     Serial.print("Module IMEI: "); Serial.println(imei);
-  }
+  }*/
 
   
     if (! RTC.isrunning()) {
@@ -166,7 +164,7 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
     }
           // TODO remove this before final ship
           logLine.toCharArray(cMessage, 141);
-      sendSMS(phoneNumber, cMessage);
+      //sendSMS(phoneNumber, cMessage);
     Serial.println ("5");
     // We don't have a good way to report errors writing to the card...
 }
