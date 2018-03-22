@@ -45,7 +45,7 @@ uint8_t type;
 void setup () {
     Serial.begin(115200);
     ina219_a.begin();
-    ina219_b.begin();
+    //ina219_b.begin();
     Wire.begin();
     RTC.begin();
     
