@@ -119,7 +119,7 @@ void loop () {
 
 void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_amps, float b_shuntVolts, float b_busVolts, float b_loadVolts, float b_amps) {
     // Get datetime now
-    DateTime now = RTC.now();
+    //DateTime now = RTC.now();
     // Build a file name - we'll use todays date
     //String fileName = String(now.year()) + String(now.month()) + String(now.day()) + F(".csv");
     String fileName = F("data.csv");
