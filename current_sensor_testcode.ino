@@ -1,14 +1,13 @@
-#include <SD.h>
+//#include <SD.h>
 
-#include <Adafruit_FONA.h>
+//#include <Adafruit_FONA.h>
 
 #include <Adafruit_INA219.h>
 
 #include <Wire.h>
-#include <RTClib.h>
+//#include <RTClib.h>
 
-#include <SPI.h>
-#include <SD.h>
+// #include <SPI.h>
 
 char phoneNumber[14]={'6','1','7','4','6','6','9','3','0','9'};
 
@@ -30,7 +29,7 @@ Adafruit_INA219 ina219_a(0x41); // We need to update this for the right address,
 #define FONA_TX 12
 #define FONA_RST 4
 
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 //SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
 //SoftwareSerial *fonaSerial = &fonaSS;
 //HardwareSerial *fonaSerial = &Serial;
