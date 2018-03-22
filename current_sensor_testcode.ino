@@ -66,13 +66,13 @@ void setup () {
   }*/
 
   
-    if (! RTC.isrunning()) {
+    /*if (! RTC.isrunning()) {
       // TODO remove this before final ship
       Serial.println("RTC is NOT running!");
       // following line sets the RTC to the date & time this sketch was compiled
       // uncomment it & upload to set the time, date and start run the RTC!
      
-    }
+    }*/
   // RTC.adjust(DateTime(2016,3,26,12,07,00));
 
 /* Currently causing SMS not to send
@@ -169,11 +169,11 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
     // We don't have a good way to report errors writing to the card...
 }
 
-void sendSMS(char *sendto, char *message) {
+/*void sendSMS(char *sendto, char *message) {
    if (!fona.sendSMS(sendto, message)) {
        Serial.println(F("Failed"));
     } else {
        Serial.println(F("Sent!"));
     }
     Serial.println ("6");
-}
+}*/
