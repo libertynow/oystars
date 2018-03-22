@@ -2,8 +2,6 @@
 
 #include <Adafruit_FONA.h>
 
-#include <Adafruit_FONA.h>
-
 //#include <FonaSMS.h>
 
 #include <Adafruit_INA219.h>
@@ -25,8 +23,8 @@ const int chipSelect = 53;
 RTC_DS1307 RTC;
 
 // Our two voltage monitors. A is the one with the A0 FILLED, B is the one with the A1 FILLED
-Adafruit_INA219 ina219_a; // We need to update this for the right address, A0 is 0x41
-//Adafruit_INA219 ina219_b; // We need to update this for the right address, A1 is 0x44
+Adafruit_INA219 ina219_a(0x41); // We need to update this for the right address, A0 is 0x41
+//Adafruit_INA219 ina219_b(0x44); // We need to update this for the right address, A1 is 0x44
 
 
 // To use the MEGA, it is necessary to jump the TX and RX ports.
@@ -46,6 +44,8 @@ uint8_t type;
 
 void setup () {
     Serial.begin(115200);
+    ina219_a.begin();
+    ina219_b.begin();
     Wire.begin();
     RTC.begin();
     
@@ -102,7 +102,7 @@ void loop () {
     float a_busVolts = ina219_a.getBusVoltage_V();
     float a_loadVolts = a_busVolts + (a_shuntVolts / 1000);
     float a_amps = ina219_a.getCurrent_mA();
-    
+    // http://icircuit.net/arduino-boards-pin-mapping/141
     // Get volts / ampts from IN219-B
     //int b_shuntVolts = 0;//ina219_b.getShuntVoltage_mV();
     //int b_busVolts = 0;//ina219_b.getBusVoltage_V();
@@ -142,16 +142,16 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
 
 
       char cMessage[141];
-    /*
-    if (a_amps <= 0 || a_amps >= 10){
+    
+    /*if (a_amps <= 0 || a_amps >= 10){
       String uhoh = "ALERT - AMPS ARE OUTSIDE OF NORMAL VALUES : " + String(a_amps);
       uhoh.toCharArray(cMessage,141);
       Serial.println ("3");
       sendSMS("16174669309", cMessage);
       
       memset(cMessage, 0, sizeof(cMessage));
-    }
-    */
+    }*/
+    
 
     
     File dataFile = SD.open(fileNameChars, FILE_WRITE);
@@ -165,9 +165,7 @@ void writeLine(float a_shuntVolts, float a_busVolts, float a_loadVolts, float a_
       dataFile.close();
     }
           // TODO remove this before final ship
-      Serial.println(logLine);
           logLine.toCharArray(cMessage, 141);
-          Serial.println(cMessage);
       sendSMS(phoneNumber, cMessage);
     Serial.println ("5");
     // We don't have a good way to report errors writing to the card...
