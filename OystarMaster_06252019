@@ -1,0 +1,273 @@
+#include <SD.h>
+#include <Adafruit_FONA.h>
+//#include <FonaSMS.h>
+#include <Adafruit_INA219.h>
+#include <Wire.h> 
+#include <RTClib.h>
+#include <SPI.h>
+
+
+//Tom's Phone Number
+char phoneNumber[14] = {'6', '1', '7', '4', '6', '6', '9', '3', '0', '9'};
+
+//Stuart's Number
+//char phoneNumber[14]={'6','1','7','2','8','3','8','2','6','3'};
+
+// This has to do with the SD card, on the UNO and Feather it's 10 on the Mega its 53
+const int chipSelect = 10;
+
+// This is the reference to the Clock we'll use to get the time
+RTC_PCF8523 RTC;
+
+/*
+  Up to 4 boards may be connected. Addressing is as follows:
+  Board 0: Address = 0x40 Offset = binary 00000 (no jumpers required)
+  Board 1: Address = 0x41 Offset = binary 00001 (bridge A0 as in the photo above)
+  Board 2: Address = 0x44 Offset = binary 00100 (bridge A1)
+  Board 3: Address = 0x45 Offset = binary 00101 (bridge A0 & A1)
+*/
+
+// Our two voltage monitors. ina219_a=Board 0 and ina219_b=Board 1
+Adafruit_INA219 ina219_a;
+Adafruit_INA219 ina219_b(0x045);
+
+#if defined(ARDUINO_ARCH_SAMD)
+// for Zero, output on USB Serial console, remove line below if using programming port to program the Zero!
+#define Serial SerialUSB
+#endif
+
+
+// To use the MEGA, it is necessary to jump the TX and RX ports.
+// #define FONA_RX 11
+// #define FONA_TX 12
+// #define FONA_RST 4
+
+
+// To use the FEATHER, it is necessary to DEFINE the TX and RX ports.
+#define FONA_RX  9
+#define FONA_TX  8
+#define FONA_RST 4
+#define FONA_RI  7
+
+#include <SoftwareSerial.h>
+SoftwareSerial fonaSS = SoftwareSerial(FONA_TX, FONA_RX);
+SoftwareSerial *fonaSerial = &fonaSS;
+Adafruit_FONA fona = Adafruit_FONA(FONA_RST);
+
+uint8_t readline(char *buff, uint8_t maxbuff, uint16_t timeout = 0);
+uint8_t type;
+
+void setup () {
+#ifndef ESP8266
+  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
+#endif
+  Serial.begin(115200);
+  ina219_a.begin();
+  ina219_b.begin();
+  Wire.begin();
+  RTC.begin();
+  Serial.println(SS);
+
+  pinMode(SS, OUTPUT);
+
+  fonaSerial->begin(4800);
+  while (! fona.begin(*fonaSerial)) {
+    Serial.println(F("Couldn't find FONA"));
+    while (1);
+    delay(1000);
+  }
+
+  char imei[15] = {0}; // MUST use a 16 character buffer for IMEI!
+  uint8_t imeiLen = fona.getIMEI(imei);
+  if (imeiLen > 0) {
+    Serial.print("Module IMEI: "); Serial.println(imei);
+  }
+
+
+  if (! RTC.begin()) {
+    // TODO remove this before final ship
+    Serial.println("Couldn't find RTC!");
+    // following line sets the RTC to the date & time this sketch was compiled
+    // uncomment it & upload to set the time, date and start run the RTC!
+//    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    // This line sets the RTC with an explicit date & time, for example to set
+    // January 21, 2014 at 3am you would call:
+    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+  }
+
+  Serial.print("Initializing SD card...");
+
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    // don't do anything more:
+    while (1);
+  }
+  Serial.println("Card Initialized.");
+
+}
+String a_amps_label = String("mA Ob");
+String b_amps_label = String("mA Sup");
+String b_loadVolts_label = String("V Bat");
+String structureVoltageAlgorithm_label = String("V ObjCal");
+//String b_shuntVolts_label = String(" mV Shunt");
+
+
+// number of analog samples to take per reading
+#define NUM_SAMPLES 10
+
+int sumA1 = 0; // sum of samples taken A1
+int sumA2 = 0; // sum of samples taken A2
+
+unsigned char sample_countA1 = 0; // current sample number A1
+unsigned char sample_countA2 = 0; // current sample number A2
+
+float voltageA1 = 0.0;            // calculated voltage A1
+float voltageA2 = 0.0;            // calculated voltage A2
+float structureVoltageAlgorithm = 0.0;
+
+
+uint32_t currentFrequency;
+/*
+  // Initialize the INA219.
+  // By default the initialization will use the largest range (32V, 2A).  However
+  // you can call a setCalibration function to change this range (see comments).
+  ina219.begin();
+  // To use a slightly lower 32V, 1A range (higher precision on amps):
+  //ina219.setCalibration_32V_1A();
+  // Or to use a lower 16V, 400mA range (higher precision on volts and amps):
+  //ina219.setCalibration_16V_400mA();
+*/
+
+void loop () {
+  // take a number of analog samples and add them up of A1
+  while (sample_countA1 < NUM_SAMPLES) {
+    sumA1 += analogRead(A1);
+    sample_countA1++;
+    delay(10);
+  }
+  // take a number of analog samples and add them up of A2
+  while (sample_countA2 < NUM_SAMPLES) {
+    sumA2 += analogRead(A2);
+    sample_countA2++;
+    delay(10);
+  }
+  // calculate the voltage A1
+  // use 5.0 for a 5.0V ADC reference voltage
+  // 5.015V is the calibrated reference voltage
+  voltageA1 = ((float)sumA1 / (float)NUM_SAMPLES * 4.94) / 1024.0;
+  voltageA2 = ((float)sumA2 / (float)NUM_SAMPLES * 4.94) / 1024.0;
+  // send voltage for display on Serial Monitor
+  // voltage multiplied by 11 when using voltage divider that
+  // divides by 11. 11.132 is the calibrated voltage divide
+  // value
+  /*    Serial.print((voltageA1 * 11.132)/17.12);
+      Serial.println (" V A1");
+      Serial.print((voltageA2 * 11.132)/17.12);
+      Serial.println (" V A2");
+  */
+
+  Serial.println ("--------- Calculted Structure Voltage ---------");
+
+//  String(structureVoltageAlgorithm =  float((voltageA2 * 11.132) / 17.12) - ((voltageA1 * 11.132) / 17.12));
+  String(structureVoltageAlgorithm =  float((voltageA2 * 2)) - ((voltageA1 * 2)));
+
+
+  sample_countA1 = 0;
+  sumA1 = 0;
+  sample_countA2 = 0;
+  sumA2 = 0;
+
+  // Get volts / amps from IN219_a
+  float a_shuntVolts = ina219_a.getShuntVoltage_mV();
+  float a_busVolts = ina219_a.getBusVoltage_V();
+  float a_loadVolts = a_busVolts - (a_shuntVolts / 10000);
+  float a_amps = ina219_a.getCurrent_mA();
+  // Get volts / amps from IN219_b
+  float b_shuntVolts = ina219_b.getShuntVoltage_mV();
+  float b_busVolts = ina219_b.getBusVoltage_V();
+  float b_loadVolts = b_busVolts - (b_shuntVolts / 1000);
+  float b_amps = ina219_b.getCurrent_mA();
+
+
+
+
+  // Write the line
+  writeLine(a_amps, structureVoltageAlgorithm, b_amps, b_loadVolts);
+
+  // CHANGE INTERVAL FREQUENCY HERE
+  // 1000 ms == 1 second
+  //delay(1); //Real-Time for testing
+  delay(1000 * 30); //30 Second Interval
+  // delay(10 * 120000); //2 min Interval
+  //delay(10 * 1200000); //20 min Interval
+  //delay(1000 * 60 * 60); //Hourly Interval
+  //delay(1000 * 60 * 60 * 2); //2  Hour Interval - Live Test 5/3/2019
+}
+
+void writeLine(float a_amps, float structureVoltageAlgorithm, float b_amps, float b_loadVolts)
+{
+
+  // Get datetime now
+  DateTime now = RTC.now();
+  DateTime TimeAdjust (now + TimeSpan(0,0,41,8));
+ 
+    
+  // Build a file name - we'll use todays date
+  //String fileName = String(now.year()) + String(now.month()) + String(now.day()) + F(".csv");
+  String fileName = F("data.csv");
+  // The open call on SD requires a char-array buffer, so we need to do some copying...
+  char fileNameChars[sizeof(fileName) + 1];
+  // Copy the file to the buffer
+  fileName.toCharArray(fileNameChars, sizeof(fileName) + 1);
+  // Create the line of text we're going to log
+  String logLine = String(TimeAdjust.year()) + '/' + String(TimeAdjust.month()) + '/' + String(TimeAdjust.day()) + ' ' + String(TimeAdjust.hour()) + ':' + String(TimeAdjust.minute()) + ':' + String(TimeAdjust.second());
+  logLine += '\n' + String(a_amps) + String(a_amps_label) + '\n' + String(structureVoltageAlgorithm) + String (structureVoltageAlgorithm_label)
+             + '\n' + String(b_amps) + String(b_amps_label) + '\n' +
+             String(b_loadVolts) + String(b_loadVolts_label);
+             
+             
+
+  Serial.println(logLine);
+
+  // Open the file on the SD card
+  char cMessage[141];
+
+/*  if (a_amps <= 0 || a_amps >= 10){
+    String uhoh = "ALERT - AMPS ARE OUTSIDE OF NORMAL VALUES : " + String(a_amps);
+    uhoh.toCharArray(cMessage,141);
+    
+    sendSMS("16174669309", cMessage);
+
+    memset(cMessage, 0, sizeof(cMessage));
+    }
+*/
+
+
+  File dataFile = SD.open(fileNameChars, FILE_WRITE);
+
+  // If that worked, write it out
+  if (dataFile) {
+    // Write the line to the file
+    dataFile.println(logLine);
+    // Close the file - the SD system only supports a single file being opened at once, since everything is highly serial in nature
+    dataFile.close();
+  }
+  // TODO remove this before final ship
+  logLine.toCharArray(cMessage, 141);
+
+// Send SMS
+sendSMS(phoneNumber, cMessage);
+
+}
+       
+void sendSMS(char *sendto, char *message) {
+   if (!fona.sendSMS(sendto, message)) {
+       Serial.println(F("Failed"));
+    } else {
+       Serial.println(F("Sent!"));
+    }
+
+  }
+
+  
