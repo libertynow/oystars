@@ -1,5 +1,3 @@
-//OystarMaster
-
 #include <SD.h>
 #include <Adafruit_FONA.h>
 //#include <FonaSMS.h>
@@ -7,6 +5,18 @@
 #include <Wire.h> 
 #include <RTClib.h>
 #include <SPI.h>
+
+
+//////////////////// CHANGE INTERVAL FREQUENCY HERE ////////////////////////////
+  // 1000 ms == 1 second
+    //const long interval = 1000;      // 01 Second
+    //const long interval = 10000;     // 10 Seconds
+    const long interval = 60000;    // 01 Minute
+    //const long interval = 300000;   // 05 Minutes
+    //const long interval = 600000;   // 10 Minutes
+    //const long interval = 3600000;  // 01 Hour
+
+////////////////////////////////////////////////////////////////////////////////
 
 //Tom's Phone Number
 char phoneNumber[14] = {'6','1','7','4','6','6','9','3','0','9'};
@@ -80,6 +90,8 @@ float structureVoltageAlgorithm = 0.0;
 
 uint32_t currentFrequency;
 
+unsigned long previousMillis = 0; 
+
 void setup () {
 //#ifndef ESP8266
 //  while (!Serial);     // will pause Zero, Leonardo, etc until serial console opens
@@ -142,6 +154,10 @@ void setup () {
 */
 
 void loop () {
+   unsigned long currentMillis = millis();
+   if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;      // save the last time ran program
+  
   // take a number of analog samples and add them up of A1
   while (sample_countA1 < NUM_SAMPLES) {
     sumA1 += analogRead(A1);
@@ -195,20 +211,13 @@ void loop () {
 
   // Write the line
   writeLine(a_amps, structureVoltageAlgorithm, b_amps, b_loadVolts);
-
-//////////////////// CHANGE INTERVAL FREQUENCY HERE ////////////////////////////
-  // 1000 ms == 1 second
-  //delay(1); //Real-Time for testing
-//  delay(1000 * 30); //30 Second Interval
-//  delay(1000 * 40); //40 Second Interval
-  delay(1200000); //2 min Interval
-  //delay(10 * 1200000); //20 min Interval
-  //delay(1000 * 60 * 60); //Hourly Interval
-//  delay(1000 * 60 * 60 * 2); //2  Hour Interval - Live Test 7/29/2019
-
-////////////////////////////////////////////////////////////////////////////////
-
+  
+  
+   }
+   
 }
+
+/////////////////////Functions/////////////////////
 
 void writeLine(float a_amps, float structureVoltageAlgorithm, float b_amps, float b_loadVolts)
 {
