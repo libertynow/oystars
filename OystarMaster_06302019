@@ -11,9 +11,10 @@
   // 1000 ms == 1 second
     //const long interval = 1000;      // 01 Second
     //const long interval = 10000;     // 10 Seconds
-    const long interval = 60000;    // 01 Minute
+    //const long interval = 60000;    // 01 Minute
     //const long interval = 300000;   // 05 Minutes
     //const long interval = 600000;   // 10 Minutes
+    const long interval = 1200000;   // 20 Minutes
     //const long interval = 3600000;  // 01 Hour
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,8 +141,9 @@ void setup () {
   }
   Serial.println("Card Initialized.");
 
+///////////////////////  
 }
-
+///////////////////////
 /*
   // Initialize the INA219.
   // By default the initialization will use the largest range (32V, 2A).  However
